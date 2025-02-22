@@ -12,29 +12,27 @@ db = firestore.client()
 
 app = Flask(__name__)
 
-# --------------------------- USER REGISTRATION ---------------------------
-@app.route('/register', methods=['POST'])
-def register():
+# --------------------------- USER LOGIN ---------------------------
+@app.route('/login', methods=['POST'])
+def login():
     data = request.json
-    email = data['email']
-    password = data['password']
-    name = data['name']
-    training_preferences = data.get('training_preferences', {})
+    username = data.get('username')
+    password = data.get('password')
 
-    user = auth.create_user(email=email, password=password)
-    user_id = user.uid
+    if not username or not password:
+        return jsonify({'error': 'Username and password are required'}), 400
 
-    db.collection('users').document(user_id).set({
-        'name': name,
-        'email': email,
-        'training_preferences': training_preferences,
-        'booking_history': [],
-        'skill_level': 'Beginner',
-        'feedback': {},
-        'cluster': None
-    })
+    # Query Firestore for user
+    user_ref = db.collection('users').where('username', '==', username).stream()
+    user_data = next((doc.to_dict() for doc in user_ref), None)
 
-    return jsonify({'message': 'User registered successfully', 'user_id': user_id}), 200
+    if not user_data or user_data.get('password') != password:
+        return jsonify({'error': 'Invalid credentials'}), 401
+
+    return jsonify({'message': 'Login successful', 'user_data': user_data})
+
+if __name__ == '__main__':
+    app.run(debug=True)
 
 # --------------------------- CLASS SCHEDULING ---------------------------
 @app.route('/schedule_class', methods=['POST'])
