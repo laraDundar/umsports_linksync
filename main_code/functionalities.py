@@ -196,3 +196,53 @@ if __name__ == '__main__':
     app.run(debug=True)
 
 
+import firebase_admin
+from firebase_admin import credentials, db
+import re
+
+# Initialize Firebase
+cred = credentials.Certificate("path/to/your/firebase-key.json")
+firebase_admin.initialize_app(cred, {'databaseURL': 'https://umsports-linksync-default-rtdb.europe-west1.firebasedatabase.app/'})
+
+# Reference to Firebase
+ref = db.reference("/")
+
+def move_pending_sessions():
+    # Get the pending registrations
+    pending_ref = ref.child("login_status/pending_registrations")
+    pending_data = pending_ref.get()
+
+    if not pending_data:
+        print("No pending registrations found.")
+        return
+
+    # Extract user and session details
+    match = re.match(r"(\w+)\s(.+)\s-\s([\d:]+)\sto\s([\d:]+)\son\s([\d-]+)", pending_data)
+
+    if match:
+        user_id, sport, start_time, end_time, date = match.groups()
+
+        # Define session data
+        session_data = {
+            "sport": sport,
+            "start_time": start_time,
+            "end_time": end_time,
+            "date": date
+        }
+
+        # Update the user's session in `user_registrations`
+        user_sessions_ref = ref.child(f"user_registrations/{user_id}/sessions")
+        user_sessions_ref.push(session_data)
+
+        # Remove the entry from `pending_registrations`
+        pending_ref.delete()
+
+        print(f"✅ Moved session for {user_id} to user_registrations and removed from pending_registrations.")
+    else:
+        print("❌ Failed to parse session data.")
+
+# Run the function
+move_pending_sessions()
+
+
+
