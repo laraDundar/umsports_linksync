@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify
+"""from flask import Flask, request, jsonify
 import firebase_admin
 from firebase_admin import credentials, firestore, auth
 import random
@@ -243,6 +243,7 @@ def move_pending_sessions():
 
 # Run the function
 move_pending_sessions()
+"""
 
 
 
